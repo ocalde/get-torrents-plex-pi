@@ -1,0 +1,34 @@
+{
+  "name": "get-torrents-plex-pi",
+  "version": "1.0.0",
+  "description": "Very simple app for downloading movies by torrent and put them in my plex server, running on a Pi",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "debug": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ocalde/get-torrents-plex-pi.git"
+  },
+  "author": "Oscar Calderon",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ocalde/get-torrents-plex-pi/issues"
+  },
+  "homepage": "https://github.com/ocalde/get-torrents-plex-pi#readme",
+  "dependencies": {
+    "@koa/router": "^9.4.0",
+    "ajv": "^6.12.6",
+    "bunyan": "^1.8.14",
+    "dotenv": "^8.2.0",
+    "koa": "^2.13.0",
+    "koa-bodyparser": "^4.3.0",
+    "koa-combine-routers": "^4.0.2",
+    "webtorrent": "^0.109.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.6"
+  }
+}
