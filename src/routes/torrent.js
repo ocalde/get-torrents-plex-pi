@@ -1,17 +1,21 @@
 const Router = require('@koa/router');
+const multer = require('@koa/multer');
 const WebTorrent = require('webtorrent');
 const bunyan = require('bunyan');
 const path = require('path');
-const asyncBusboy = require('async-busboy');
-const { isEmpty, isArguments } = require('lodash');
+const { isEmpty } = require('lodash');
 const { URL } = require('url');
 const got = require('got');
 const { file } = require('tmp-promise');
 const zlib = require('zlib');
 const unzipper = require('unzipper');
+const upload = multer();
+
 
 const fs = require('fs').promises;
 const fsOld = require('fs');
+const isNewTorrentValid = require('../schemas/newTorrent');
+const { isValidURL } = require('../utils');
 const { SERVER_PREFIX, PLEX_BASE_PATH, LOGS_PATH } = process.env;
 const log = bunyan.createLogger({
 	name: "myapp",
@@ -43,29 +47,33 @@ router.get('/progress', async (ctx, next) => {
 	ctx.status = 200;
 	next();
 });
+const torrentFieldsConfig = upload.fields([
+	{
+		name: 'torrentFile',
+		maxCount: 1
+	},
+	{
+		name: 'srtFile',
+		maxCount: 1
+	}
+]);
 
-router.post('/download', async (ctx, next) => {
-	const { files, fields } = await asyncBusboy(ctx.req);
-	const { torrentURL, srtURL, srtLanguage, torrentName } = fields;
+router.post('/download', torrentFieldsConfig, async (ctx, next) => {
 
-	const torrentFile = files.find(file => file.fieldname === 'torrentFile');
-	const srtFile = files.find(file => file.fieldname === 'srtFile');
+	const { torrentURL, srtURL, srtLanguage, torrentName } = ctx.request.body;
+	const { torrentFile, srtFile } = ctx.files;
 
-	try {
-		!isEmpty(torrentURL) ? new URL(torrentURL) : null;
-	} catch (err) {
-		ctx.throw(400, 'Invalid URL for torrent');
+	if (!isNewTorrentValid(ctx.request.body)) {
+		ctx.throw(400, 'Invalid torrent data');
 	}
 
-	try {
-		!isEmpty(srtURL) ? new URL(srtURL) : null;
-	} catch (err) {
-		ctx.throw(400, 'Invalid URL for srt');
+	if ((!isEmpty(torrentURL) && !isValidURL(torrentURL)) ||
+		(!isEmpty(srtURL) && !isValidURL(srtURL))) {
+		ctx.throw(400, 'Invalid torrent data');
 	}
 
-	//TODO read a torrent file as well
-	let torrentId = !isEmpty(torrentURL) ? torrentURL : torrentFile.path;
-	let srt = !isEmpty(srtURL) ? new URL(srtURL) : srtFile.path;
+	let torrentId = !isEmpty(torrentURL) ? torrentURL : torrentFile.pop().buffer;
+	let srt = !isEmpty(srtURL) ? new URL(srtURL) : srtFile.pop().buffer;
 
 	const pathToStore = `${PLEX_BASE_PATH}`;
 
@@ -77,13 +85,9 @@ router.post('/download', async (ctx, next) => {
 		log.info(`Torrent [${torrentName || torrent.name}] has started downloading`);
 
 		torrent.on('done', async () => {
-			const oldPath = `${torrent.path}${path.sep}${torrent.name}`;
-			const newPath = `${torrent.path}${path.sep}${torrentName}`;
 
-			await fs.rename(oldPath, newPath);
-
+			const newPath = await renameTorrent(torrent.path, torrent.name, torrentName);
 			cleanupUnusedFiles(newPath);
-
 			addSrt(srt, newPath, torrentName, srtLanguage);
 
 			client.remove(torrent.infoHash);
@@ -94,6 +98,14 @@ router.post('/download', async (ctx, next) => {
 	ctx.status = 202;
 	next();
 });
+
+const renameTorrent = async (basePath, oldName, newName) => {
+	const oldPath = `${basePath}${path.sep}${oldName}`;
+	const newPath = `${basePath}${path.sep}${newName}`;
+
+	await fs.rename(oldPath, newPath);
+	return newPath;
+}
 
 const addSrt = async (srt, downloadPath, downloadName, language) => {
 	let srtPath = srt;
@@ -113,7 +125,7 @@ const addSrt = async (srt, downloadPath, downloadName, language) => {
 			.pipe(unzipper.Extract({ path: tempSrtPath, })
 				.on('close', async () => {
 					const subtitles = await fs.readdir(tempSrtPath);
-					fs.rename(`${tempSrtPath}${path.sep}${subtitles[0]}`, `${downloadPath}${path.sep}${downloadName}.${language}.srt`);
+					await fs.rename(`${tempSrtPath}${path.sep}${subtitles[0]}`, `${downloadPath}${path.sep}${downloadName}.${language}.srt`);
 					fs.rmdir(tempSrtPath);
 				}));
 
@@ -127,11 +139,12 @@ const addSrt = async (srt, downloadPath, downloadName, language) => {
 
 const cleanupUnusedFiles = async (downloadPath) => {
 	const files = await fs.readdir(downloadPath);
-	files.forEach(file => {
-		if (file.match(/png|jpg|gif|srt/)) {
-			fs.unlink(`${downloadPath}${path.sep}${file}`);
-		}
-	});
+	
+	const filesToDelete = files
+		.filter(file => file.match(/png|jpg|gif|srt/))
+		.map(file => fs.unlink(`${downloadPath}${path.sep}${file}`));
+	
+	await Promise.all(filesToDelete);
 };
 
 module.exports = router;
