@@ -12,13 +12,13 @@ const unzipper = require('unzipper');
 
 const fs = require('fs').promises;
 const fsOld = require('fs');
-const { SERVER_PREFIX } = process.env;
+const { SERVER_PREFIX, PLEX_BASE_PATH, LOGS_PATH } = process.env;
 const log = bunyan.createLogger({
 	name: "myapp",
 	streams: [{
 		level: 'info',
 		formatter: "pretty",
-		path: `${process.env.LOGS_PATH}/logs.txt`
+		path: `${LOGS_PATH}/logs.txt`
 	}], src: true
 });
 
@@ -67,7 +67,7 @@ router.post('/download', async (ctx, next) => {
 	let torrentId = !isEmpty(torrentURL) ? torrentURL : torrentFile.path;
 	let srt = !isEmpty(srtURL) ? new URL(srtURL) : srtFile.path;
 
-	const pathToStore = `${process.env.PLEX_BASE_PATH}`;
+	const pathToStore = `${PLEX_BASE_PATH}`;
 
 	const torrentOptions = {
 		path: pathToStore
