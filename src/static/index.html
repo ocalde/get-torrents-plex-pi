@@ -1,0 +1,22 @@
+<html>
+    <head>
+
+    </head>
+    <body>
+        <form action="/torr/download" method="POST" enctype="multipart/form-data">
+            Media Type: 
+                <select id="mediaType" name="mediaType">
+                    <option value="movie">Movie</option>
+                    <option value="series">Series</option>
+                </select>
+                <br />
+            Torrent Name: <input type="text" id="torrentName" name="torrentName" /><br />
+            Torrent URL: <input type="text" id="torrentURL" name="torrentURL" /><br />
+            Torrent File: <input type="file" id="torrentFile" name="torrentFile" /><br />
+            SRT URL: <input type="text" id="srtURL" name="srtURL" /><br />
+            SRT File: <input type="file" id="srtFile" name="srtFile" /><br />
+            SRT Language: <input type="text" id="srtLanguage" name="srtLanguage" /><br />
+            <input type="submit" value="Download Torrent" />
+        </form>
+    </body>
+</html>
