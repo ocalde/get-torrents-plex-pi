@@ -73,7 +73,7 @@ router.post('/download', torrentFieldsConfig, async (ctx, next) => {
 	}
 
 	let torrentId = !isEmpty(torrentURL) ? torrentURL : torrentFile.pop().buffer;
-	let srt = !isEmpty(srtURL) ? new URL(srtURL) : srtFile.pop().buffer;
+	let srt = !isEmpty(srtURL) ? new URL(srtURL) : (srtFile ? srtFile.pop().buffer : null);
 
 	const pathToStore = `${PLEX_BASE_PATH}`;
 
@@ -88,7 +88,9 @@ router.post('/download', torrentFieldsConfig, async (ctx, next) => {
 
 			const newPath = await renameTorrent(torrent.path, torrent.name, torrentName);
 			cleanupUnusedFiles(newPath);
-			addSrt(srt, newPath, torrentName, srtLanguage);
+			if(srt) {
+				addSrt(srt, newPath, torrentName, srtLanguage);
+			}
 
 			client.remove(torrent.infoHash);
 		});
