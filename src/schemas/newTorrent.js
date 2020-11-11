@@ -9,7 +9,7 @@ const schema = {
         torrentURL: { type: 'string' },
         srtURL: { type: 'string' },
         mediaType: { type: 'string' },
-        srtLanguage: { type: 'string', default: 'es', enum: [ 'es', 'en', 'fr', 'de' ] },
+        srtLanguage: { type: 'string', default: 'es', enum: [ 'es', 'en', 'fr', 'de', null ] },
 
     },
     required: [ "torrentName" ],
