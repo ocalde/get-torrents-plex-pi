@@ -81,6 +81,7 @@ router.post('/torrent', torrentFieldsConfig, async (ctx, next) => {
 		ctx.throw(400, 'Invalid torrent data');
 	}
 
+	let torrentId = !isEmpty(torrentURL) ? torrentURL : torrentFile.pop().buffer;
 	let srt = !isEmpty(srtURL) ? new URL(srtURL) : (srtFile ? srtFile.pop().buffer : null);
 
 	const pathToStore = `${PLEX_BASE_PATH}/${mediaType}`;

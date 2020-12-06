@@ -34,7 +34,7 @@
     "multer": "^1.4.2",
     "tmp-promise": "^3.0.2",
     "unzipper": "^0.10.11",
-    "webtorrent": "^0.109.1"
+    "webtorrent": "^0.112.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.6"
