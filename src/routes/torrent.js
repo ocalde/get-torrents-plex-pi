@@ -7,7 +7,6 @@ const { isEmpty } = require('lodash');
 const { URL } = require('url');
 const got = require('got');
 const { file } = require('tmp-promise');
-const zlib = require('zlib');
 const unzipper = require('unzipper');
 const upload = multer();
 
@@ -58,9 +57,19 @@ const torrentFieldsConfig = upload.fields([
 	}
 ]);
 
-router.post('/download', torrentFieldsConfig, async (ctx, next) => {
+router.get('/media/:mediaType', async (ctx, next) => {
+	const mediaAssets = await fs.readdir(`${PLEX_BASE_PATH}/${ctx.request.params.mediaType}`);
+	ctx.body = mediaAssets;
+	next();
+});
 
-	const { torrentURL, srtURL, srtLanguage, torrentName } = ctx.request.body;
+router.post('/srt', torrentFieldsConfig, async (ctx, next) => {
+
+});
+
+router.post('/torrent', torrentFieldsConfig, async (ctx, next) => {
+
+	const { mediaType, torrentURL, srtURL, srtLanguage, torrentName } = ctx.request.body;
 	const { torrentFile, srtFile } = ctx.files;
 
 	if (!isNewTorrentValid(ctx.request.body)) {
@@ -72,10 +81,9 @@ router.post('/download', torrentFieldsConfig, async (ctx, next) => {
 		ctx.throw(400, 'Invalid torrent data');
 	}
 
-	let torrentId = !isEmpty(torrentURL) ? torrentURL : torrentFile.pop().buffer;
 	let srt = !isEmpty(srtURL) ? new URL(srtURL) : (srtFile ? srtFile.pop().buffer : null);
 
-	const pathToStore = `${PLEX_BASE_PATH}`;
+	const pathToStore = `${PLEX_BASE_PATH}/${mediaType}`;
 
 	const torrentOptions = {
 		path: pathToStore
@@ -92,7 +100,12 @@ router.post('/download', torrentFieldsConfig, async (ctx, next) => {
 				addSrt(srt, newPath, torrentName, srtLanguage);
 			}
 
-			client.remove(torrent.infoHash);
+			try {
+				client.remove(torrent.infoHash);
+			} catch (err) {
+				console.log('Error while trying to remove torrent');
+				console.log(err.message);
+			}
 		});
 	});
 
